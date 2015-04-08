@@ -5,21 +5,18 @@
       <!-- Let Amounts and Prices depend on the Distance of the Ware Source and Sink (Distance is calculated in a seperate cue and then saved & looked up) -->
       <set_value name="$WareID" exact="md.$UT_DI_Ware_list.indexof.{$TraderDefinition.{$i}.{1}}"/>
       <do_if value="$WareID">
-        <debug_text filter="general" text="'============='"/>
-        <debug_text filter="general" text="'Before: %1 %2'.[@md.$UT_DI_Source_Distance_list.{$WareID},@md.$UT_DI_Sink_Distance_list.{$WareID}]"/>
+        <!-- if Path for the current Ware has not been calculated for this Zone - signal re-calculation -->
         <do_if value="md.$UT_DI_Zone_list.{$WareID} != $actor.zone">
-          <debug_text filter="general" text="'recalculation of %1 previous Zone: %2'.[$TraderDefinition.{$i}.{1}.name,@md.$UT_DI_Zone_list.{$WareID}.name]"/>
           <signal_cue_instantly cue="md.UT_Dynamic_Itemtrade_Manager.Calculate_Distances" param="$WareID"/>
         </do_if>
-        <debug_text filter="general" text="'After:  %1 %2'.[@md.$UT_DI_Source_Distance_list.{$WareID},@md.$UT_DI_Sink_Distance_list.{$WareID}]"/>
         <set_value name="$Source_Distance" exact="md.$UT_DI_Source_Distance_list.{$WareID}"/>
         <set_value name="$Sink_Distance" exact="md.$UT_DI_Sink_Distance_list.{$WareID}"/>
-        <!-- check if this is the Sink or Source Station and use special values for them (min/max Price, more or less Wares than usual etc. ) -->
+        <!-- check if this is THE Sink or Source Station and use special values for them (min/max Price, more or less Wares than usual etc. ) -->
         <do_if value="$Source_Distance == 1 and md.$UT_DI_Source_list.{$WareID}.indexof.{$actor.station}" comment="Check if we are on a Source Station when the Distance is 1">
           <!-- you get a small chance to find 1 unit of even rare / unique Items at the Source - psst -->
           <set_value name="$Amount" exact="( $TraderDefinition.{$i}.{3} + 1 ) * 1.1"/>
           <set_value name="$Price" exact="$TraderDefinition.{$i}.{1}.minprice"/>
-          <set_value name="$chance" min="$TraderDefinition.{$i}.{4}" max="[$TraderDefinition.{$i}.{4}+1*1.2,100].max"/>
+          <set_value name="$chance" min="$TraderDefinition.{$i}.{4}" max="[$TraderDefinition.{$i}.{4}+1*1.2,100].min"/>
         </do_if>
         <do_elseif value="$Sink_Distance == 1 and md.$UT_DI_Sink_list.{$WareID}.indexof.{$actor.station}" comment="Check if we are on a Sink Station when the Distance is 1">
           <set_value name="$Amount" exact="$TraderDefinition.{$i}.{2} * 0.5"/>
