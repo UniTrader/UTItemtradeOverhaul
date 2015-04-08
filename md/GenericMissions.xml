@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<diff>
+  <!--add sel="//cue[@name=&quot;Start&quot;]/conditions">
+    <cue_is_complete cue="md.UT_Dynamic_Itemtrade_Manager.Calculate_Distances"/>
+  </add-->
+</diff>

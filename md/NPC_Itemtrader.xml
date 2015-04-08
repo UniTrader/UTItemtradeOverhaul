@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<diff>
+  <replace sel="//cue[@name=&quot;OnPlatformPopulation_Itemtrader&quot;]/actions/do_all[@exact=&quot;$TraderDefinition.count&quot;]">
+    <do_all exact="$TraderDefinition.count" counter="$i">
+      <!-- Let Amounts and Prices depend on the Distance of the Ware Source and Sink (Distance is calculated in a seperate cue and then saved & looked up) -->
+      <set_value name="$WareID" exact="md.$UT_DI_Ware_list.indexof.{$TraderDefinition.{$i}.{1}}"/>
+      <do_if value="$WareID">
+        <debug_text filter="general" text="'============='"/>
+        <debug_text filter="general" text="'Before: %1 %2'.[@md.$UT_DI_Source_Distance_list.{$WareID},@md.$UT_DI_Sink_Distance_list.{$WareID}]"/>
+        <do_if value="md.$UT_DI_Zone_list.{$WareID} != $actor.zone">
+          <debug_text filter="general" text="'recalculation of %1 previous Zone: %2'.[$TraderDefinition.{$i}.{1}.name,@md.$UT_DI_Zone_list.{$WareID}.name]"/>
+          <signal_cue_instantly cue="md.UT_Dynamic_Itemtrade_Manager.Calculate_Distances" param="$WareID"/>
+        </do_if>
+        <debug_text filter="general" text="'After:  %1 %2'.[@md.$UT_DI_Source_Distance_list.{$WareID},@md.$UT_DI_Sink_Distance_list.{$WareID}]"/>
+        <set_value name="$Source_Distance" exact="md.$UT_DI_Source_Distance_list.{$WareID}"/>
+        <set_value name="$Sink_Distance" exact="md.$UT_DI_Sink_Distance_list.{$WareID}"/>
+        <!-- check if this is the Sink or Source Station and use special values for them (min/max Price, more or less Wares than usual etc. ) -->
+        <do_if value="$Source_Distance == 1 and md.$UT_DI_Source_list.{$WareID}.indexof.{$actor.station}" comment="Check if we are on a Source Station when the Distance is 1">
+          <!-- you get a small chance to find 1 unit of even rare / unique Items at the Source - psst -->
+          <set_value name="$Amount" exact="( $TraderDefinition.{$i}.{3} + 1 ) * 1.1"/>
+          <set_value name="$Price" exact="$TraderDefinition.{$i}.{1}.minprice"/>
+          <set_value name="$chance" min="$TraderDefinition.{$i}.{4}" max="[$TraderDefinition.{$i}.{4}+1*1.2,100].max"/>
+        </do_if>
+        <do_elseif value="$Sink_Distance == 1 and md.$UT_DI_Sink_list.{$WareID}.indexof.{$actor.station}" comment="Check if we are on a Sink Station when the Distance is 1">
+          <set_value name="$Amount" exact="$TraderDefinition.{$i}.{2} * 0.5"/>
+          <set_value name="$Price" exact="$TraderDefinition.{$i}.{1}.maxprice"/>
+          <set_value name="$chance" exact="$TraderDefinition.{$i}.{4}"/>
+        </do_elseif>
+        <do_else>
+          <set_value name="$Amount" exact="( $TraderDefinition.{$i}.{2} * $Sink_Distance + $TraderDefinition.{$i}.{3} * $Source_Distance ) / ( $Sink_Distance + $Source_Distance )"/>
+          <set_value name="$Price" exact="( $TraderDefinition.{$i}.{1}.minprice * $Sink_Distance + $TraderDefinition.{$i}.{1}.maxprice * $Source_Distance ) / ( $Sink_Distance + $Source_Distance )"/>
+          <set_value name="$chance" exact="$TraderDefinition.{$i}.{4}"/>
+        </do_else>
+        <!-- Add a bit Randomness to Amounts and Prices - 10% of Range up and down -->
+        <set_value name="$Amountvariation" exact="( $TraderDefinition.{$i}.{3} - $TraderDefinition.{$i}.{2} ) * 0.1 " comment="10% of the Amount Range as Variation"/>
+        <set_value name="$Amount" min="$Amount - $Amountvariation" max="$Amount + $Amountvariation" />
+        <set_value name="$Pricevariation" exact="( $TraderDefinition.{$i}.{1}.maxprice - $TraderDefinition.{$i}.{1}.minprice ) / 10" comment="10% of the Price Range as Variation"/>
+        <set_value name="$Price" min="[ $Price - $Pricevariation , $TraderDefinition.{$i}.{1}.minprice ].max" max="[ $Price + $Pricevariation , $TraderDefinition.{$i}.{1}.maxprice ].min" comment="Variation capped at the min and max price of the Wares"/>
+        
+        <add_inventory entity="$actor" ware="$TraderDefinition.{$i}.{1}" exact="$Amount" chance="$chance"/>
+        <append_to_list name="$WareList" exact="[$TraderDefinition.{$i}.{1}, $Price]"/>
+      </do_if>
+      <!-- Unaltered Vanilla Code as Fallback in case no Distances are defined -->
+      <do_else>
+        <add_inventory entity="$actor" ware="$TraderDefinition.{$i}.{1}" min="$TraderDefinition.{$i}.{2}" max="$TraderDefinition.{$i}.{3}" chance="$TraderDefinition.{$i}.{4}"/>
+        <set_value name="$Price" min="$TraderDefinition.{$i}.{1}.minprice" max="$TraderDefinition.{$i}.{1}.maxprice"/>
+        <append_to_list name="$WareList" exact="[$TraderDefinition.{$i}.{1}, $Price]"/>
+      </do_else>
+    </do_all>
+  </replace>
+  <add sel="//cue[@name=&quot;OnPlatformPopulation_Itemtrader&quot;]/actions/do_all[@exact=&quot;$TraderDefinition.count&quot;]" pos="after">
+    <remove_value name="$WareID"/>
+    <remove_value name="$Amount"/>
+    <remove_value name="$Amountvariation"/>
+    <remove_value name="$Pricevariation"/>
+    <remove_value name="$chance"/>
+    <remove_value name="$Source_Distance"/>
+    <remove_value name="$Sink_Distance"/>
+  </add>
+</diff>

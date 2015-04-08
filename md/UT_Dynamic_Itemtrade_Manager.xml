@@ -1,0 +1,254 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<mdscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="UT_Dynamic_Itemtrade_Manager" xsi:noNamespaceSchemaLocation="http://utnas/~unitrader/XRebirthxsds/md.xsd">
+  <cues>
+    <cue name="Var"/>
+    <cue name="Init" checktime="0.1s" checkinterval="0.5s" version="2">
+      <conditions>
+        <cue_is_complete cue="md.Setup.Start"/>
+      </conditions>
+      <actions>
+        <!-- Define Ware List and other Lists used by this Extension -->
+        <create_list name="md.$UT_DI_Source_Distance_list" comment="contains the Distances for all Wares from the Sink"/>
+        <create_list name="md.$UT_DI_Sink_Distance_list" comment="contains the Distances for all Wares to the Source"/>
+        <create_list name="md.$UT_DI_Zone_list" comment="contains the Zone for which the Distances were calculated (for Optimisation: only required Wares are calculated)"/>
+        <create_list name="md.$UT_DI_Ware_list" comment="contains all Wares managed here; mostly only used for Index Lookup purposes"/>
+        <create_list name="md.$UT_DI_Source_list" comment="Contains a 2d-List where all Sources for Wares are Listesd: .{$wareid}.{stations}"/>
+        <create_list name="Var.$Source_criteria_list" comment="Internal Handling: Contains a 3d-List with the Criteria for Station Selection: .{$wareid}.{stations}.{criteria} with Criteria1: Space, 2: Station Macro, 3: Owner Faction (2 and 3 may be nulll for not relevant)"/>
+        <create_list name="md.$UT_DI_Sink_list" comment="Contains a 2d-List where all Sources for Wares are Listesd: .{$wareid}.{stations}"/>
+        <create_list name="Var.$Sink_criteria_list" comment="Internal Handling: Contains a 3d-List with the Criteria for Station Selection: .{$wareid}.{stations}.{criteria} with Criteria1: Space, 2: Station Macro, 3: Owner Faction (2 and 3 may be nulll for not relevant)"/>
+        <create_list name="Var.$Cluster_list" comment="Internal Handling: Contains a List of Clusters which should be checked for Distance/Path - updated on Cluster Change"/>
+        <do_all exact="warebasket.inv_trading_regular.list.count" counter="$i">
+          <!-- Create new Lists for each Ware -->
+          <append_to_list name="md.$UT_DI_Ware_list" exact="warebasket.inv_trading_regular.list.{$i}"/>
+          <append_to_list name="md.$UT_DI_Zone_list" exact="null"/>
+          <!--Cluster MD Vars: md.$Maelstrom , md.$Albion , md.$Omicron_Lyrae , md.$DeVries md.$FieldsOfOpportunity (last one is handled in the next Cue only )-->
+          <!-- all Sectors and Zones i need so i can re-use them: -->
+          <find_sector name="$Far_Out" space="md.$Albion" macro="macro.Cluster_B_Sector07_macro"/>
+          <find_sector name="$Glaring_Truth" space="md.$DeVries" macro="macro.Cluster_D_Sector19_macro"/>
+          <find_sector name="$Radiant_Haven" space="md.$Omicron_Lyrae" macro="macro.Cluster_C_Sector11_macro"/>
+          <!-- end Sector Searches -->
+          <!-- Criteria List List Structurer: Space Macro Faction !!!! -->
+          <!-- Albion Tobacco -->
+          <do_if value="warebasket.inv_trading_regular.list.{$i} == ware.inv_albiontobacco">
+            <append_to_list name="md.$UT_DI_Source_list" exact="[ null , null , null , null ]"/>
+            <append_to_list name="Var.$Source_criteria_list" exact="[ [ md.$Albion , macro.struct_bt_alb_wheat_farm_macro , null ] , [ md.$Albion , macro.struct_bt_alb_spice_farm_macro , null ] , [ md.$Albion , macro.struct_bt_alb_spice_farm_macro , null ] , [ md.$Maelstrom , macro.struct_econ_agri_ar_unique_megafarmlands_macro , null ] ]"/>
+            <append_to_list name="md.$UT_DI_Sink_list" exact="[ null , null , null , null , null ]"/>
+            <append_to_list name="Var.$Sink_criteria_list" exact="[ [ $Far_Out , null , null ] , [ md.$Albion , macro.landmarks_unique_ar_badlands_colony_macro , null ] , [ md.$Omicron_Lyrae , null , null ] , [ $Radiant_Haven , null , null ] , [ $Glaring_Truth , null , null ] ]"/>
+          </do_if>
+          <!--  -->
+          <do_elseif value="warebasket.inv_trading_regular.list.{$i} == ware.inv_albiontobacco and false">
+            <append_to_list name="md.$UT_DI_Source_list" exact="[ null , null , null , null , null , null ]"/>
+            <append_to_list name="Var.$Source_criteria_list" exact="[ [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] ]"/>
+            <append_to_list name="md.$UT_DI_Sink_list" exact="[ null , null , null , null , null , null ]"/>
+            <append_to_list name="Var.$Sink_criteria_list" exact="[ [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] ]"/>
+          </do_elseif>
+          <!-- template for additional ware-secific definition -->
+          <do_elseif value="warebasket.inv_trading_regular.list.{$i} == ware.inv_albiontobacco and false">
+            <append_to_list name="md.$UT_DI_Source_list" exact="[ null , null , null , null , null , null ]"/>
+            <append_to_list name="Var.$Source_criteria_list" exact="[ [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] ]"/>
+            <append_to_list name="md.$UT_DI_Sink_list" exact="[ null , null , null , null , null , null ]"/>
+            <append_to_list name="Var.$Sink_criteria_list" exact="[ [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] ]"/>
+          </do_elseif>
+          <do_else comment="fallback: 6 completely random sources and Sinks">
+            <append_to_list name="md.$UT_DI_Source_list" exact="[ null , null , null , null , null , null ]"/>
+            <append_to_list name="Var.$Source_criteria_list" exact="[ [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] ]"/>
+            <append_to_list name="md.$UT_DI_Sink_list" exact="[ null , null , null , null , null , null ]"/>
+            <append_to_list name="Var.$Sink_criteria_list" exact="[ [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] , [ player.galaxy , null , null ] ]"/>
+          </do_else>
+          <append_to_list name="md.$UT_DI_Source_Distance_list" exact="null"/>
+          <append_to_list name="md.$UT_DI_Sink_Distance_list" exact="null"/>
+        </do_all>
+        <!-- Initial Filling of all Lists -->
+        <signal_cue cue="Update_Source_Positions"/>
+        <signal_cue cue="Update_Sink_Positions"/>
+        <force_cue cue="Update_Cluster_List"/>
+      </actions>
+      <!-- Patchaction: Execute Cue again -->
+      <patch sinceversion="1" state="complete">
+        <reset_cue cue="this"/>
+      </patch>
+    </cue>
+    <cue name="Init_Teladi_Outpost">
+      <conditions>
+        <check_all>
+          <check_any>
+            <event_cue_completed cue="md.Setup_Teladi_Outpost.Start"/>
+            <event_cue_completed cue="Init"/>
+          </check_any>
+          <cue_is_complete cue="md.Setup_Teladi_Outpost.Start"/>
+          <cue_is_complete cue="Init"/>
+        </check_all>
+      </conditions>
+      <actions>
+        <!-- Albion Tobacco - TO Additional Sink -->
+        <set_value name="$i" exact="md.$UT_DI_Ware_list.indexof.{ware.inv_albiontobacco}"/>
+        <append_to_list name="md.$UT_DI_Sink_list.{$i}" exact="null"/>
+        <append_to_list name="Var.$Sink_criteria_list.{$i}" exact="[ md.$FieldsOfOpportunity , null , null ]"/>
+      </actions>
+    </cue>
+    <cue name="Update_Source_Positions">
+      <conditions>
+        <event_cue_signalled/>
+      </conditions>
+      <actions>
+        <do_all exact="md.$UT_DI_Ware_list.count" counter="$i">
+          <do_all exact="md.$UT_DI_Source_list.{$i}.count" counter="$j">
+            <!-- ToDo: Check if its not in a Sink Zone and add slowly Moving of the Source instead of a completely random location -->
+            <!-- isnt there a possibility to pass a Value to <find_station/>-Parameters which denotes 'not relevant'? (same as attribute omited) -->
+            <do_if value="Var.$Source_criteria_list.{$i}.{$j}.{2} != null">
+              <do_if value="Var.$Source_criteria_list.{$i}.{$j}.{3} != null">
+                <find_station name="$station" space="Var.$Source_criteria_list.{$i}.{$j}.{1}" macro="Var.$Source_criteria_list.{$i}.{$j}.{2}" owner="Var.$Source_criteria_list.{$i}.{$j}.{3}" required="true"/>
+              </do_if>
+              <do_else>
+                <find_station name="$station" space="Var.$Source_criteria_list.{$i}.{$j}.{1}" macro="Var.$Source_criteria_list.{$i}.{$j}.{2}" required="true"/>
+              </do_else>
+            </do_if>
+            <do_else>
+              <do_if value="Var.$Source_criteria_list.{$i}.{$j}.{3} != null">
+                <find_station name="$station" space="Var.$Source_criteria_list.{$i}.{$j}.{1}" owner="Var.$Source_criteria_list.{$i}.{$j}.{3}" required="true"/>
+              </do_if>
+              <do_else>
+                <find_station name="$station" space="Var.$Source_criteria_list.{$i}.{$j}.{1}"/>
+              </do_else>
+            </do_else>
+            <set_value name="md.$UT_DI_Source_list.{$i}.{$j}" exact="$station"/>
+          </do_all>
+        </do_all>
+      </actions>
+    </cue>
+    <cue name="Update_Sink_Positions">
+      <conditions>
+        <event_cue_signalled/>
+      </conditions>
+      <actions>
+        <do_all exact="md.$UT_DI_Ware_list.count" counter="$i">
+          <do_all exact="md.$UT_DI_Sink_list.{$i}.count" counter="$j">
+            <!-- ToDo: Check if its not in a Sink Zone and add slowly Moving of the Source instead of a completely random location -->
+            <!-- isnt there a possibility to pass a Value to <find_station/>-Parameters which denotes 'not relevant'? (same as attribute omited) -->
+            <do_if value="Var.$Sink_criteria_list.{$i}.{$j}.{2} != null">
+              <do_if value="Var.$Sink_criteria_list.{$i}.{$j}.{3} != null">
+                <find_station name="$station" space="Var.$Sink_criteria_list.{$i}.{$j}.{1}" macro="Var.$Sink_criteria_list.{$i}.{$j}.{2}" owner="Var.$Sink_criteria_list.{$i}.{$j}.{3}" required="true"/>
+              </do_if>
+              <do_else>
+                <find_station name="$station" space="Var.$Sink_criteria_list.{$i}.{$j}.{1}" macro="Var.$Sink_criteria_list.{$i}.{$j}.{2}" required="true"/>
+              </do_else>
+            </do_if>
+            <do_else>
+              <do_if value="Var.$Sink_criteria_list.{$i}.{$j}.{3} != null">
+                <find_station name="$station" space="Var.$Sink_criteria_list.{$i}.{$j}.{1}" owner="Var.$Sink_criteria_list.{$i}.{$j}.{3}" required="true"/>
+              </do_if>
+              <do_else>
+                <find_station name="$station" space="Var.$Sink_criteria_list.{$i}.{$j}.{1}"/>
+              </do_else>
+            </do_else>
+            <set_value name="md.$UT_DI_Sink_list.{$i}.{$j}" exact="$station"/>
+          </do_all>
+        </do_all>
+      </actions>
+    </cue>
+    <cue name="Update_Cluster_List" instantiate="true">
+      <conditions>
+        <event_object_changed_cluster object="player.primaryship"/>
+      </conditions>
+      <actions>
+        <!-- performance hack preperation: only check current Cluster and direct neighbours for Distance-->
+        <set_value name="Var.$Cluster_list" exact="[player.cluster]"/>
+        <find_object groupname="$Gates" class="class.gate" space="player.cluster"/>
+        <do_all exact="$Gates.count" counter="$Counter">
+          <do_if value="$Gates.{$Counter}.isactive">
+            <append_to_list name="Var.$Cluster_list" exact="$Gates.{$Counter}.destination.cluster"/>
+          </do_if>
+        </do_all>
+      </actions>
+    </cue>
+    <cue name="Calculate_Distances_all" instantiate="true">
+      <conditions>
+        <check_any>
+          <event_object_changed_zone object="player.primaryship"/>
+          <event_cue_completed cue="Update_Source_Positions"/>
+          <event_cue_completed cue="Update_Sink_Positions"/>
+        </check_any>
+        <count_stations space="player.zone" min="1" comment="only necesary in Zones which contain Stations"/>
+        <cue_is_complete cue="Update_Source_Positions" comment="make sure we have"/>
+        <cue_is_complete cue="Update_Sink_Positions" comment="Sources and Sinks"/><check_value value="false"/>
+      </conditions>
+      <actions>
+        <!-- end performance hack perperation -->
+        <do_all exact="md.$UT_DI_Ware_list.count" counter="$i">
+          <set_value name="$Source_distance" exact="[80]" comment="assumed Distance if Sorce is farther away then the Neighbour Sector or no Sources are defined"/>
+          <do_all exact="md.$UT_DI_Source_list.{$i}.count" counter="$j">
+            <!-- performance Hack: only check this Cluster and direct neighbours -->
+            <do_if value="Var.$Cluster_list.indexof.{md.$UT_DI_Source_list.{$i}.{$j}.cluster}">
+              <get_global_path component="$result" multiple="true" usehighways="true">
+                <start object="md.$UT_DI_Source_list.{$i}.{$j}"/>
+                <end object="player.primaryship"/>
+              </get_global_path>
+              <append_to_list name="$Source_distance" exact="$result.count"/>
+              <do_if value="$result.count == 1" comment="Speed hack: already in current Zone (shortest path possible)  - no further path searches necesary">
+                <break/>
+              </do_if>
+            </do_if>
+          </do_all>
+          <set_value name="md.$UT_DI_Source_Distance_list.{$i}" exact="$Source_distance.min"/>
+          <set_value name="$Sink_distance" exact="[80]" comment="assumed Distance if Sink is farther away then the Neighbour Sector or no Sinks are defined"/>
+          <do_all exact="md.$UT_DI_Sink_list.{$i}.count" counter="$j">
+            <!-- performance Hack: only check this Cluster and direct neighbours -->
+            <do_if value="Var.$Cluster_list.indexof.{md.$UT_DI_Sink_list.{$i}.{$j}.cluster}">
+              <get_global_path component="$result" multiple="true" usehighways="true">
+                <start object="player.primaryship"/>
+                <end object="md.$UT_DI_Sink_list.{$i}.{$j}"/>
+              </get_global_path>
+              <append_to_list name="$Sink_distance" exact="$result.count"/>
+              <do_if value="$result.count == 1" comment="Speed hack: already in current Zone (shortest path possible) - no further path searches necesary">
+                <break/>
+              </do_if>
+            </do_if>
+          </do_all>
+          <set_value name="md.$UT_DI_Sink_Distance_list.{$i}" exact="$Sink_distance.min"/>
+          <set_value name="md.$UT_DI_Zone_list.{$i}" exact="player.zone"/>
+          <!--debug_text filter="general" text="'Sources and Sinks:\n%1\n%2'.[md.$UT_DI_Source_list.{$i},md.$UT_DI_Sink_list.{$i}]"/-->
+        </do_all>
+        <!--debug_text filter="general" text="'Distances:\n%1\n\n%2'.[md.$UT_DI_Source_Distance_list,md.$UT_DI_Sink_Distance_list]"/-->
+      </actions>
+    </cue>
+    <cue name="Calculate_Distances" instantiate="true">
+      <conditions>
+        <event_cue_signalled/>
+      </conditions>
+      <actions>
+        <set_value name="$i" exact="event.param"/>
+        <set_value name="$Source_distance" exact="[80]" comment="assumed Distance if Sorce is farther away then the Neighbour Sector or no Sources are defined"/>
+        <do_all exact="md.$UT_DI_Source_list.{$i}.count" counter="$j">
+          <!-- performance Hack: only check this Cluster and direct neighbours -->
+          <do_if value="Var.$Cluster_list.indexof.{md.$UT_DI_Source_list.{$i}.{$j}.cluster}">
+            <get_global_path component="$result" multiple="true" usehighways="true">
+              <start object="md.$UT_DI_Source_list.{$i}.{$j}"/>
+              <end object="player.primaryship"/>
+            </get_global_path>
+            <append_to_list name="$Source_distance" exact="$result.count"/>
+            <do_if value="$result.count == 1" comment="Speed hack: already in current Zone (shortest path possible)  - no further path searches necesary">
+              <break/>
+            </do_if>
+          </do_if>
+        </do_all>
+        <set_value name="md.$UT_DI_Source_Distance_list.{$i}" exact="$Source_distance.min"/>
+        <set_value name="$Sink_distance" exact="[80]" comment="assumed Distance if Sink is farther away then the Neighbour Sector or no Sinks are defined"/>
+        <do_all exact="md.$UT_DI_Sink_list.{$i}.count" counter="$j">
+          <!-- performance Hack: only check this Cluster and direct neighbours -->
+          <do_if value="Var.$Cluster_list.indexof.{md.$UT_DI_Sink_list.{$i}.{$j}.cluster}">
+            <get_global_path component="$result" multiple="true" usehighways="true">
+              <start object="player.primaryship"/>
+              <end object="md.$UT_DI_Sink_list.{$i}.{$j}"/>
+            </get_global_path>
+            <append_to_list name="$Sink_distance" exact="$result.count"/>
+            <do_if value="$result.count == 1" comment="Speed hack: already in current Zone (shortest path possible) - no further path searches necesary">
+              <break/>
+            </do_if>
+          </do_if>
+        </do_all>
+        <set_value name="md.$UT_DI_Sink_Distance_list.{$i}" exact="$Sink_distance.min"/>
+        <set_value name="md.$UT_DI_Zone_list.{$i}" exact="player.zone"/>
+      </actions>
+    </cue>
+  </cues>
+</mdscript>
